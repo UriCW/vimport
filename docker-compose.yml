@@ -1,16 +1,15 @@
 services:
-
   application:
     build: .
     restart: always
     ports:
       - 8050:5000
-    environment:
-      - ENVIRONMENT="docker"
     depends_on:
       - redis
       - database
       - celery-worker
+    env_file:
+      - env.docker
 
   database:
     image: postgres
@@ -20,7 +19,7 @@ services:
     ports:
       - "5432:5432"
     env_file:
-      - .env
+      - env.docker
 
   redis:
     image: redis
@@ -32,10 +31,8 @@ services:
     build: .
     command: "celery --app make_celery worker --loglevel=info"
     restart: always
-    environment:
-      - ENVIRONMENT="docker"
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    env_file:
+      - env.docker
     depends_on:
       - redis
       - database
@@ -51,10 +48,8 @@ services:
   database-migrate:
     build: .
     command: flask db upgrade
-    environment:
-      - ENVIRONMENT="docker"
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    env_file:
+      - env.docker
     depends_on:
       - database
 
