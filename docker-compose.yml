@@ -1,12 +1,18 @@
 services:
 
-  importer-app:
+  application:
     build: .
     restart: always
     ports:
       - 8050:5000
+    environment:
+      - ENVIRONMENT="docker"
+    depends_on:
+      - redis
+      - database
+      - celery-worker
 
-  importer-db:
+  database:
     image: postgres
     hostname: database
     volumes:
@@ -18,6 +24,7 @@ services:
 
   redis:
     image: redis
+    hostname: redis
     ports:
       - "6379:6379"
 
@@ -26,10 +33,30 @@ services:
     command: "celery --app make_celery worker --loglevel=info"
     restart: always
     environment:
+      - ENVIRONMENT="docker"
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
     depends_on:
       - redis
+      - database
+
+  mock-file-server:
+    hostname: mock-file-server
+    image: httpd:alpine
+    volumes:
+      - ./tests/data:/usr/local/apache2/htdocs/
+    ports:
+      - "80:80"
+
+  database-migrate:
+    build: .
+    command: flask db upgrade
+    environment:
+      - ENVIRONMENT="docker"
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      - database
 
 volumes:
   database:
