@@ -5,18 +5,20 @@
 
 
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 
 db = SQLAlchemy()
+migrate = Migrate()
 
 
 class TripRecord(db.Model):
-    __tablename__ = "boat_postion_reports"
+    __tablename__ = "trips"
     id = db.Column(db.Integer, primary_key=True)
     hvfhs_license_num = db.Column(db.String)
     dispatching_base_num = db.Column(db.String)
-    originating_base_num = db.Column(db.String)
+    originating_base_num = db.Column(db.String, nullable=True)
     request_datetime = db.Column(db.DateTime)
-    on_scene_datetime = db.Column(db.DateTime)
+    on_scene_datetime = db.Column(db.DateTime, nullable=True)
     pickup_datetime = db.Column(db.DateTime)
     dropoff_datetime = db.Column(db.DateTime)
     PULocationID = db.Column(db.Integer)
@@ -31,8 +33,8 @@ class TripRecord(db.Model):
     airport_fee = db.Column(db.Float)
     tips = db.Column(db.Float)
     driver_pay = db.Column(db.Float)
-    shared_request_flag = db.Column(db.string(1))
-    shared_match_flag = db.Column(db.string(1))
-    access_a_ride_flag = db.Column(db.string(1))
-    wav_request_flag = db.Column(db.string(1))
-    wav_match_flag = db.Column(db.string(1))
+    shared_request_flag = db.Column(db.String(1))
+    shared_match_flag = db.Column(db.String(1))
+    access_a_ride_flag = db.Column(db.String(1))
+    wav_request_flag = db.Column(db.String(1))
+    wav_match_flag = db.Column(db.String(1))

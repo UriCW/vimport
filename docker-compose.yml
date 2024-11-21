@@ -5,16 +5,14 @@ services:
     restart: always
     ports:
       - 8050:5000
-    environment:
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
 
   importer-db:
     image: postgres
+    hostname: database
     volumes:
       - database:/var/lib/postgresql
     ports:
-      - "5435:5432"
+      - "5432:5432"
     env_file:
       - .env
 

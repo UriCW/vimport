@@ -1,35 +1,50 @@
 import os
-import csv
+import time
 from flask import Flask, request
 from celery import Celery, Task, shared_task
 from celery.result import AsyncResult
-import time
-
-
-def batch_import(url: str):
-    pass
+import pandas as pd
+from models import db, migrate, TripRecord
+from sqlalchemy.orm import sessionmaker
 
 
 @shared_task(ignore_results=False, bind=True)
-def import_csv_task(self, url: str) -> int:
-    iteration = 0
-    for i in range(1, 100):
-        time.sleep(1)
-        iteration += 1
-        with open("/tmp/lala.txt", "w") as fp:
-            fp.write(f"Iteration {iteration}")
-        print(f"iterations {iteration}")
-    return iteration
+def import_csv_task(self, url: str, batch_size: int = 100):
+    """This task imports the CSV to database"""
+    processed = 0
+    engine = db.get_engine()
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    datetime_columns = [
+        "request_datetime",
+        "on_scene_datetime",
+        "pickup_datetime",
+        "dropoff_datetime",
+    ]
+    with pd.read_csv(url, chunksize=1, parse_dates=datetime_columns) as reader:
+        for chunk in reader:
+            records = chunk.to_dict(orient="records")
+            # Pandas like to use it's own none types (NaN, NaT) on missing keys which SQLAlchemy doesn't understand
+            # Convert to python None
+            records = [
+                {k: (v if not pd.isna(v) else None) for k, v in rec.items()}
+                for rec in records
+            ]
+
+            objs = [TripRecord(**rec) for rec in records]
+            session.bulk_save_objects(objs)
+            session.commit()
+            processed += len(records)
+            self.update_state(state="PROGRESS", meta={"processed": processed})
 
 
 def create_celery_app(app: Flask) -> Celery:
-    # class FlaskTask(Task):
-    #     def __call__(self, *args: object, **kwargs: object) -> object:
-    #         with app.app_context():
-    #             return self.run(*args, **kwargs)
+    class FlaskTask(Task):
+        def __call__(self, *args: object, **kwargs: object) -> object:
+            with app.app_context():
+                return self.run(*args, **kwargs)
 
-    # celery_app = Celery(app.name, task_cls=FlaskTask)
-    celery_app = Celery(app.name)
+    celery_app = Celery(app.name, task_cls=FlaskTask)
     celery_app.config_from_object(app.config["CELERY"])
     celery_app.set_default()
     app.extensions["celery"] = celery_app
@@ -39,11 +54,21 @@ def create_celery_app(app: Flask) -> Celery:
 def create_app(config="dev") -> Flask:
     app = Flask(__name__)
 
+    # Set correct config for environment
     if config == "dev":
         app.config.from_object("config.DevelopmentConfig")
     else:
         app.config.from_object("config.Config")
     celery_app = create_celery_app(app)
+
+    # database and migrations
+    db.init_app(app)
+    migrate.init_app(app, db)
+
+    # Nice import for flask shell access:w
+    @app.shell_context_processor
+    def ctx():
+        return {"app": app, "db": db}
 
     @app.route("/health")
     def health():
@@ -72,6 +97,9 @@ def create_app(config="dev") -> Flask:
     def import_status(job_id: str):
         # result = AsyncResult(job_id, app=app)
         result = AsyncResult(job_id)
+        if result.state == "PROGRESS":
+            processed = result.info.get("processed", 0)
+            return {"processed": processed}
 
         return {
             "ready": result.ready(),
@@ -81,6 +109,8 @@ def create_app(config="dev") -> Flask:
 
     @app.route("/abort/<job_id>")
     def abort_import(job_id: str):
+        celery_app.control.revoke(job_id, terminate=True)
+        # revoke(job_id, terminate=True)
         return {}
 
     return app

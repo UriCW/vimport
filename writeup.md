@@ -18,7 +18,7 @@ If I have time and patience I will also write a github actions pipeline and a du
 
 I will expose a bunch of endpoints, 
 
-/health will do nothing accept return a 200 response, this is a good practice. I may add some actual appliction status information in it but i think it's not necessary as this is mostly to demonstrate that I know I should.
+/health will do nothing accept return a 200 response, this is a good practice. I may add some actual application status information in it but i think it's not necessary as this is mostly to demonstrate that I know I should.
 
 /import will accept a POST request which takes in a JSON payload containing a "target" key specifying the location of the CSV
 
@@ -29,3 +29,10 @@ I will expose a bunch of endpoints,
 The application should be able to run by running `docker compose up` from the project's root directory.
 
 These days, for these tasks, for initial motivations I would use ChatGPT to get me started, but in this case I don't think it's really very vecessary as I am already familiar enough with the tools and techniques I need to use. If i get lazy I may change my mind later but I don't think it's likely in this particular case.
+
+## Implementation
+
+1. I ended up consulting ChatGPT about a bunch of things, mostly related to Celery in the end.
+2. I was planning to use python's built in `csv` to handle reading the file, but opted for pandas instead. Pandas feel like an overkill for this task and given i don't actually do any data analysis here it's not very sensible, but it has a convenient way of reading remote csv files in chunks. it's possible and not hard to achieve this using `requests` and `csv` too, and to remove the bloat associated with Pandas, but, i opted for this anyway in this case.
+3. usually, for these tasks i try to start by writing unit tests, but in this case i will write the tests last. this is because the application does not have a lot of functions that lend themselves to be broken down to smaller units, it really only makes sense to write tests closer to integration tests, which test the flask endpoints and celery. the only real "unit" in this sense is parsing a CSV line into an SQLAlchemy model, the rest are pretty much all celery and flask functionality. I will write some integration tests, but this is not truly a TDD methodology (which I am a great advocate on usually).
+
