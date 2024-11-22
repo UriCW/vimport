@@ -100,7 +100,7 @@ def create_app(config="dev") -> Flask:
             target_url = request_payload["target"]
 
             result = stream_csv.delay(target_url, batch_size=app.config["BATCH_SIZE"])
-            return {"result": result.id}
+            return {"task-id": result.id}
         return {}
 
     @app.route("/status/<job_id>")
@@ -119,7 +119,6 @@ def create_app(config="dev") -> Flask:
     @app.route("/abort/<job_id>")
     def abort_import(job_id: str):
         celery_app.control.revoke(job_id, terminate=True)
-        # revoke(job_id, terminate=True)
         return {}
 
     return app
