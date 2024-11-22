@@ -66,6 +66,17 @@ You can then start the worker and the flask application locally by running
 
 By default the application listens on port 5000, not 8050 like the docker compose method above.
 
+You may not want to use the full CSV. there is an http server serving a truncated version bundled into the compose file. You can use this instead by running
+
+`curl  --header "Content-Type: application/json"  --request POST --data '{ "target": "http://mock-file-server/mock-data.csv" }' localhost:5000/import`
+
+---
+**TIP**
+
+To check this worked, you can connect to the database by using
+`psql --host=localhost --username=user --dbname=rides`, with the password from abose
+and running `select count(*) from public.trips`
+---
 
 ### Configurations
 
