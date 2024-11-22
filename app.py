@@ -1,12 +1,12 @@
 import os
-import csv
 import httpx
 from itertools import islice
 from flask import Flask, request
 from celery import Celery, Task, shared_task
 from celery.result import AsyncResult
-from models import db, migrate, TripRecord
 from sqlalchemy.orm import sessionmaker
+
+from models import db, migrate, TripRecord
 from config import get_config
 
 
@@ -22,12 +22,6 @@ def insert_batch(batch):
 @shared_task(ignore_results=False, bind=True)
 def stream_csv(self, url: str, batch_size: int = 100) -> None:
     processed: int = 0
-    datetime_columns = [
-        "request_datetime",
-        "on_scene_datetime",
-        "pickup_datetime",
-        "dropoff_datetime",
-    ]
     with httpx.Client() as client:
         with client.stream("GET", url, follow_redirects=True) as stream:
             lines = stream.iter_lines()
@@ -38,9 +32,6 @@ def stream_csv(self, url: str, batch_size: int = 100) -> None:
                     break
 
                 objs = [dict(zip(headings, o.split(","))) for o in batch]
-                # Change missing datetime types to python None
-                # for o in objs:
-
                 # Consider doing this multithreaded for performance
                 # Insert to database
                 insert_batch(objs)
@@ -48,51 +39,6 @@ def stream_csv(self, url: str, batch_size: int = 100) -> None:
                 # Update task status
                 processed += len(batch)
                 self.update_state(state="PROGRESS", meta={"processed": processed})
-
-
-# @Deprecated (but might need to be scavenged)
-# @shared_task(ignore_results=False, bind=True)
-# def import_csv_task(self, url: str, batch_size: int = 100):
-#     """This task imports the CSV to database"""
-#     processed = 0
-#     response = requests.get(url, stream=True)
-#     response.raise_for_status()
-#     engine = db.get_engine()
-#     Session = sessionmaker(bind=engine)
-#     session = Session()
-#     batch = []
-#     reader = csv.DictReader(l.decode("utf-8") for l in response.iter_lines())
-#
-#
-#     print(f"Import CSV task for {url}")
-#     processed = 0
-#     engine = db.get_engine()
-#     Session = sessionmaker(bind=engine)
-#     session = Session()
-#     datetime_columns = [
-#         "request_datetime",
-#         "on_scene_datetime",
-#         "pickup_datetime",
-#         "dropoff_datetime",
-#     ]
-#     print("Opening url")
-#     with pd.read_csv(url, chunksize=batch_size, parse_dates=datetime_columns) as reader:
-#         print("read CSV")
-#         for chunk in reader:
-#             records = chunk.to_dict(orient="records")
-#             # Pandas like to use it's own none types (NaN, NaT) on missing keys which SQLAlchemy doesn't understand
-#             # Convert to python None
-#             records = [
-#                 {k: (v if not pd.isna(v) else None) for k, v in rec.items()}
-#                 for rec in records
-#             ]
-#
-#             objs = [TripRecord(**rec) for rec in records]
-#             session.bulk_save_objects(objs)
-#             session.commit()
-#             processed += len(records)
-#             print(processed)
-#             self.update_state(state="PROGRESS", meta={"processed": processed})
 
 
 def create_celery_app(app: Flask) -> Celery:
