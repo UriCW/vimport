@@ -35,7 +35,7 @@ You can also abort the job by hiting the `/abort/` endpoint with
 
 ### Development 
 
-For development, you may not want to rebuild the docker compose each time. there are a bunch of services that are required and can run, while the main application, and the celery worker needs to regularly be restarted.
+For development, you may not want to rebuild the docker compose each time. there are a bunch of services that are required and can run in the background, while the main application, and the celery worker need to regularly be restarted.
 
 you can start the background services, and they will be available for you to use by running the command
 
@@ -47,11 +47,12 @@ The first time you do this, you also need to run the database migration. you do 
 
 `docker compose up database-migrate`
 
-** If you change the model, remember to run a migration by executing
-`flask db migrate -m "Migration Name"`, and then run this again **
+**If you change the model, remember to run a migration by executing
+`flask db migrate -m "Migration Name"`, and then run this again**
 
 Next you need to setup the database connection environment. those need to match the ones in the env.docker file.
-create a .env file with this in it
+
+Create a `.env` file with this in it
 
 ```
 POSTGRES_DB="rides"
@@ -59,7 +60,7 @@ POSTGRES_USER="user"
 POSTGRES_PASSWORD="password"
 ```
 
-you can then start the worker and the flask application locally by running 
+You can then start the worker and the flask application locally by running 
 
 `local_run.sh`
 
@@ -70,4 +71,3 @@ By default the application listens on port 5000, not 8050 like the docker compos
 
 there are several configurations in the `config.py` py, and you can switch between them by setting the `ENVIRONMENT` environment variable.
 currently only docker and local (default) are available, but there is a scaffolding for development, staging and production too and it is trivial to add more.
-
