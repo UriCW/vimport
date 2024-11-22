@@ -43,7 +43,7 @@ def stream_csv(self, url: str, batch_size: int = 100) -> None:
 
 def create_celery_app(app: Flask) -> Celery:
     class FlaskTask(Task):
-        def __call__(self, *args: object, **kwargs: object) -> object:
+        def __call__(self, *args: object, **kwargs: object) -> None:
             with app.app_context():
                 return self.run(*args, **kwargs)
 
@@ -56,16 +56,7 @@ def create_celery_app(app: Flask) -> Celery:
 
 def create_app(config="dev") -> Flask:
     app = Flask(__name__)
-    print(f"Configuration in use: {get_config()}")
     app.config.from_object(get_config())
-    # app.config.from_object("config.DockerConfig")
-    print("Kofiko")
-    print(app.config)
-    # Set correct config for environment
-    # if config == "dev":
-    #     app.config.from_object("config.DevelopmentConfig")
-    # else:
-    #     app.config.from_object("config.Config")
     celery_app = create_celery_app(app)
 
     # database and migrations
