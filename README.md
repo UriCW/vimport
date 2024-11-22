@@ -70,7 +70,7 @@ You may not want to use the full CSV. there is an http server serving a truncate
 
 `curl  --header "Content-Type: application/json"  --request POST --data '{ "target": "http://mock-file-server/mock-data.csv" }' localhost:5000/import`
 
-> [!NOTE]
+> [!TIP]
 > To check this worked, you can connect to the database by using
 > `psql --host=localhost --username=user --dbname=rides`, with the password from abose
 > and running `select count(*) from public.trips`
