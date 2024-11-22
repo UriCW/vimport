@@ -20,6 +20,11 @@ services:
       - "5432:5432"
     env_file:
       - env.docker
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis
@@ -51,7 +56,8 @@ services:
     env_file:
       - env.docker
     depends_on:
-      - database
+      database:
+        condition: service_healthy
 
 volumes:
   database:

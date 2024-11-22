@@ -5,6 +5,7 @@
 
 
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import validates
 from flask_migrate import Migrate
 
 db = SQLAlchemy()
@@ -38,3 +39,11 @@ class TripRecord(db.Model):
     access_a_ride_flag = db.Column(db.String(1))
     wav_request_flag = db.Column(db.String(1))
     wav_match_flag = db.Column(db.String(1))
+
+    @validates(
+        "request_datetime", "on_scene_datetime", "pickup_datetime", "dropoff_datetime"
+    )
+    def validate_datetime_fields(self, key, value):
+        if value == "":
+            return None
+        return value
