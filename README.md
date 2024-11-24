@@ -22,7 +22,7 @@ you can start the import process by running
 
 `curl  --header "Content-Type: application/json"  --request POST --data '{ "target": "https://public-vizz-storage.s3.amazonaws.com/backend/coding-challenges/large-file-importer/fhvhv_tripdata_2024-01.csv" }' localhost:8050/import` 
 
-This will return the celery task ID, for example 
+This will return the celery task ID, for example
 
 `{"task-id":"495d999c-032d-4fdc-a27b-2032f6814918"}`
 
@@ -34,6 +34,15 @@ You can also abort the job by hiting the `/abort/` endpoint with
 `curl localhost:8050/abort/495d999c-032d-4fdc-a27b-2032f6814918`
 
 ### Development 
+
+#### Setup python virtual environment
+
+`python -m virtualenv .venv; source .venv/bin/activate`
+
+Install dependencies
+
+`pip install -r requirements.txt`
+
 
 For development, you may not want to rebuild the docker compose each time. there are a bunch of services that are required and can run in the background, while the main application, and the celery worker need to regularly be restarted.
 
@@ -63,6 +72,9 @@ POSTGRES_PASSWORD="password"
 You can then start the worker and the flask application locally by running 
 
 `local_run.sh`
+
+This just starts the application, and the worker, it's equivalent to 
+`celery -A app worker --loglevel INFO` and `python -m flask --app app run`
 
 By default the application listens on port 5000, not 8050 like the docker compose method above.
 
