@@ -8,4 +8,4 @@
 # POSTGRES_PASSWORD="password"
 # To match the ones defined in `env.docker`
 celery -A make_celery worker --loglevel INFO &
-python app.py
+python -m flask --app app run

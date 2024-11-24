@@ -3,14 +3,18 @@
 ## Plan
 
 I decided to use python and flask to accomplish the REST API part of this task.
-This is mostly because I am familiar and like Flask and Python. It may not be the best tool, actually FastAPI or Falcon could probably be a little bit better for this simple application, and using Async TypeScript would probably be closer to the tooling I would choose for a production system, depnding on other factors like how often this task needs to run and what latency can be tollerated, vs development time and the likelihood ofrequiring to extend the functionality, and any other similar considerations. I think for a demonstration this will be a good setup.
+This is mostly because I am familiar and like Flask and Python. 
+It may not be the best tool, actually FastAPI or Falcon could probably be a little bit better for this simple application, and using Async TypeScript would probably be closer to the tooling I would choose for a production system, depnding on other factors like how often this task needs to run and what latency can be tollerated, vs development time and the likelihood ofrequiring to extend the functionality, and any other similar considerations. I think for a demonstration this will be a good setup.
 
 I decided to use SQLAlchemy as the ORM as again, I am familiar with it and it's good enough for the task at hand. I will use Postgresql, no particular reason, i just usually opt for it given no other restrictions, but it is interchangeable by simple modifying the docker-compose file and the application config, given I will be using an ORM.
 
-I went out of the assumption that what you would like to see is that I am able to handle long background tasks, and that it doesn't hold the application while the tasks are running, and that I am familiar with some of the techniques to accomplish those. 
-There are a few options to demonstrate this, and between python's native threading and processing, or a more dedicated workload framework, I decided to go with Celery to perform the jobs as, and again, depending on many considerations, is probably closer to what a production system would use. Mostly, I believe that it'll better demonstrate that I understand the tradeoffs and tooling available for such jobs which is the main aim of this task. It's defintely an overkill for the task's requirements.
+I went out of the assumption that what you would like to see is that I am able to handle long background tasks, and that it doesn't hold the application while the tasks are running, and that I am familiar with some of the techniques to accomplish those heavy workloads. 
 
-The reading of the CSV will be streaming, and I will break down the file into batches as this is how I would usually handle these tasks in the wild too. it's generally pefered over line by line importing and will be more efficient in terms of processing.
+There are a few options to demonstrate this, and between python's native threading and processing, or a more dedicated workload framework, I decided to go with Celery to perform the jobs as, and again, depending on many considerations, is probably closer to what a production system would use. 
+
+Mostly, I believe that it'll better demonstrate that I understand the tradeoffs and tooling available for such jobs which is the main aim of this task. It's defintely an overkill for the task's requirements.
+
+The reading of the CSV will be streaming, and I will break down the file into batches as this is how I would usually handle these tasks in the wild too. it's generally preferred over line by line importing and will be more efficient in terms of processing.
 
 For testing, I will use pytest, as I usually do in all my python projects more or less.
 
@@ -36,3 +40,5 @@ These days, for these tasks, for initial motivations I would use ChatGPT to get 
 2. I was planning to use python's built in `csv` to handle reading the file, but opted for pandas instead. Pandas feel like an overkill for this task and given i don't actually do any data analysis here it's not very sensible, but it has a convenient way of reading remote csv files in chunks. it's possible and not hard to achieve this using `requests` and `csv` too, and to remove the bloat associated with Pandas, but, i opted for this anyway in this case.
 3. usually, for these tasks i try to start by writing unit tests, but in this case i will write the tests last. this is because the application does not have a lot of functions that lend themselves to be broken down to smaller units, it really only makes sense to write tests closer to integration tests, which test the flask endpoints and celery. the only real "unit" in this sense is parsing a CSV line into an SQLAlchemy model, the rest are pretty much all celery and flask functionality. I will write some integration tests, but this is not truly a TDD methodology (which I am a great advocate on usually).
 4. Ok, after having finished everything, turned out, that despite what the internet and chat gpt thinks, pandas read_csv is not streaming, not even when using chunks. I had to reimplement the core function again. 
+5. I did not implement a set of tests in the end. Turns out that getting to test celery tasks is a job within itself. I have written one small dummy tests for part of it, but decided it's too much effort having reviewed the documentations, to implement a full set of tests. I used ChatGPT to skeleton those, as a last moment recourse so I submit something.
+6. I also did not write as I intended a github ci pipeline and a terraform, I probably would have had I not chosend to spend the time implementing this with Celery.

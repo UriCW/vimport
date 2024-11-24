@@ -40,6 +40,10 @@ class DockerConfig(Config):
     SQLALCHEMY_DATABASE_URI = f"postgresql://{db_user}:{db_pass}@database/{db_name}"
 
 
+class TestConfig(Config):
+    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
+
+
 def get_config() -> str:
     # Helper to pick the right config
     env: str = os.environ.get("ENVIRONMENT", "default").strip()
@@ -52,6 +56,9 @@ def get_config() -> str:
         print(f"ENV - setting conf: {env}")
         logging.info("Using docker config")
         return "config.DockerConfig"
+    elif env == "test":
+        logging.info("Using test config")
+        return "config.TestConfig"
     elif env == "staging":
         logging.info("Using default config")
         return "config.Config"

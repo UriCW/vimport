@@ -1,5 +1,6 @@
 import os
 import httpx
+import logging
 from itertools import islice
 from flask import Flask, request
 from celery import Celery, Task, shared_task
@@ -8,6 +9,8 @@ from sqlalchemy.orm import sessionmaker
 
 from models import db, migrate, TripRecord
 from config import get_config
+
+celery_app = Celery()
 
 
 def insert_batch(batch):
@@ -32,7 +35,7 @@ def stream_csv(self, url: str, batch_size: int = 100) -> None:
                     break
 
                 objs = [dict(zip(headings, o.split(","))) for o in batch]
-                # Consider doing this multithreaded for performance
+                # Consider doing this as another celery task for performance
                 # Insert to database
                 insert_batch(objs)
 
@@ -47,7 +50,7 @@ def create_celery_app(app: Flask) -> Celery:
             with app.app_context():
                 return self.run(*args, **kwargs)
 
-    celery_app = Celery(app.name, task_cls=FlaskTask)
+    celery_app.Task = FlaskTask
     celery_app.config_from_object(app.config["CELERY"])
     celery_app.set_default()
     app.extensions["celery"] = celery_app
@@ -63,7 +66,7 @@ def create_app(config="dev") -> Flask:
     db.init_app(app)
     migrate.init_app(app, db)
 
-    # Nice import for flask shell access:w
+    # Nice import for flask shell access
     @app.shell_context_processor
     def ctx():
         return {"app": app, "db": db}
@@ -71,8 +74,8 @@ def create_app(config="dev") -> Flask:
     @app.route("/health")
     def health():
         app.logger.error(app.config)
-        print(app.config)
-        return {}
+        # Should actually check it is *cough cough*
+        return {"status": "healthy"}
 
     @app.route("/import", methods=["GET", "POST"])
     def import_csv():
@@ -80,16 +83,14 @@ def create_app(config="dev") -> Flask:
             return {
                 "message": "Please use a POST request with a URL of a CSV to import"
             }
-
         if request.method == "POST":
             request_payload = request.json
-            print(request_payload)
             if not request_payload or not request_payload.get("target"):
                 return {
                     "message": "Request content must contain a 'target' key with a URL for a valid CSV file"
                 }, 400
             target_url = request_payload["target"]
-
+            logging.info(f"Starting import job for {target_url}")
             result = stream_csv.delay(target_url, batch_size=app.config["BATCH_SIZE"])
             return {"task-id": result.id}
         return {}
@@ -115,7 +116,4 @@ def create_app(config="dev") -> Flask:
     return app
 
 
-if __name__ == "__main__":
-    app = create_app()
-    debug_mode = os.environ.get("FLASK_DEBUG", "0") == "1"
-    app.run(host="0.0.0.0", port=5000, debug=debug_mode)
+flask_app = create_app()
