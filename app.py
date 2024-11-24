@@ -1,7 +1,8 @@
-import os
-import httpx
+"""A Flask application that demonstartes importing large CSVs to database """
+
 import logging
 from itertools import islice
+import httpx
 from flask import Flask, request
 from celery import Celery, Task, shared_task
 from celery.result import AsyncResult
@@ -13,9 +14,10 @@ from config import get_config
 celery_app = Celery()
 
 
-def insert_batch(batch):
+def insert_batch(batch: list[dict]) -> None:
+    """Inserts a batch of dictionaries to database"""
     engine = db.get_engine()
-    Session = sessionmaker(bind=engine)
+    Session = sessionmaker(bind=engine)  # pylint: disable=C0103
     session = Session()
     objs = [TripRecord(**rec) for rec in batch]
     session.bulk_save_objects(objs)
@@ -24,6 +26,7 @@ def insert_batch(batch):
 
 @shared_task(ignore_results=False, bind=True)
 def stream_csv(self, url: str, batch_size: int = 100) -> None:
+    """A celery task to stream open a CSV in a URL, parse and insert to database"""
     processed: int = 0
     with httpx.Client() as client:
         with client.stream("GET", url, follow_redirects=True) as stream:
@@ -45,22 +48,27 @@ def stream_csv(self, url: str, batch_size: int = 100) -> None:
 
 
 def create_celery_app(app: Flask) -> Celery:
-    class FlaskTask(Task):
+    """A factory function for Celery"""
+
+    class ImportTask(Task):  # pylint: disable=W0223
+        """Override Celery Task methods"""
+
         def __call__(self, *args: object, **kwargs: object) -> None:
             with app.app_context():
                 return self.run(*args, **kwargs)
 
-    celery_app.Task = FlaskTask
+    celery_app.Task = ImportTask
     celery_app.config_from_object(app.config["CELERY"])
     celery_app.set_default()
     app.extensions["celery"] = celery_app
     return celery_app
 
 
-def create_app(config="dev") -> Flask:
+def create_app() -> Flask:
+    """Flask app factory function"""
     app = Flask(__name__)
     app.config.from_object(get_config())
-    celery_app = create_celery_app(app)
+    celery_app = create_celery_app(app)  # pylint: disable=W0621
 
     # database and migrations
     db.init_app(app)
@@ -86,11 +94,9 @@ def create_app(config="dev") -> Flask:
         if request.method == "POST":
             request_payload = request.json
             if not request_payload or not request_payload.get("target"):
-                return {
-                    "message": "Request content must contain a 'target' key with a URL for a valid CSV file"
-                }, 400
+                return {"message": "Request content must contain a 'target' key"}, 400
             target_url = request_payload["target"]
-            logging.info(f"Starting import job for {target_url}")
+            logging.info("Starting import job for %s", target_url)
             result = stream_csv.delay(target_url, batch_size=app.config["BATCH_SIZE"])
             return {"task-id": result.id}
         return {}

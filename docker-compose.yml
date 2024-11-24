@@ -34,7 +34,7 @@ services:
 
   celery-worker:
     build: .
-    command: "celery --app make_celery worker --loglevel=info"
+    command: "celery --app app worker --loglevel=info"
     restart: always
     env_file:
       - env.docker
@@ -52,7 +52,7 @@ services:
 
   database-migrate:
     build: .
-    command: flask db upgrade
+    command:  flask db upgrade
     env_file:
       - env.docker
     depends_on:

@@ -1,8 +1,4 @@
-# 0hvfhs_license_num,dispatching_base_num,originating_base_num,request_datetime,on_scene_datetime,pickup_datetime,dropoff_datetime,PULocationID,DOLocationID,trip_miles,trip_time,base_passenger_fare,tolls,bcf,sales_tax,congestion_surcharge,airport_fee,tips,driver_pay,shared_request_flag,shared_match_flag,access_a_ride_flag,wav_request_flag,wav_match_flag
-# HV0003,B03404,B03404,2024-01-01 00:21:47,2024-01-01 00:25:06,2024-01-01 00:28:08,2024-01-01 01:05:39,161,158,2.83,2251,45.61,0.0,1.25,4.05,2.75,0.0,0.0,40.18,N,N,N,N,N
-# HV0003,B03404,B03404,2024-01-01 00:10:56,2024-01-01 00:11:08,2024-01-01 00:12:53,2024-01-01 00:20:05,137,79,1.57,432,10.05,0.0,0.28,0.89,2.75,0.0,0.0,6.12,N,N,N,N,N
-# HV0003,B03404,B03404,2024-01-01 00:20:04,2024-01-01 00:21:51,2024-01-01 00:23:05,2024-01-01 00:35:16,79,186,1.98,731,18.07,0.0,0.5,1.6,2.75,0.0,0.0,9.47,N,N,N,N,N
-
+""" Defines the ORM Model for the application """
 
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import validates
@@ -12,7 +8,9 @@ db = SQLAlchemy()
 migrate = Migrate()
 
 
-class TripRecord(db.Model):
+class TripRecord(db.Model):  # pylint: disable=R0903
+    """Trip record model"""
+
     __tablename__ = "trips"
     id = db.Column(db.Integer, primary_key=True)
     hvfhs_license_num = db.Column(db.String)
@@ -43,7 +41,8 @@ class TripRecord(db.Model):
     @validates(
         "request_datetime", "on_scene_datetime", "pickup_datetime", "dropoff_datetime"
     )
-    def validate_datetime_fields(self, key, value):
+    def validate_datetime_fields(self, key, value):  # pylint: disable=W0613
+        """Ensures empty date strings are converted to python None"""
         if value == "":
             return None
         return value

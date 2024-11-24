@@ -1,3 +1,5 @@
+""" Application configurations """
+
 import os
 import logging
 from os import path, environ
@@ -11,60 +13,66 @@ db_user = environ.get("POSTGRES_USER")
 db_pass = environ.get("POSTGRES_PASSWORD")
 
 
-class Config(object):
+class Config:  # pylint: disable = R0903
+    """Base configurations"""
+
     # Default to locally running dependent services
-    CELERY = dict(
-        broker_url="redis://localhost",
-        result_backend="redis://localhost",
-        task_ignore_results=True,
-    )
+    CELERY = {
+        "broker_url": "redis://localhost",
+        "result_backend": "redis://localhost",
+        "task_ignore_results": True,
+    }
     SQLALCHEMY_DATABASE_URI = f"postgresql://{db_user}:{db_pass}@localhost/{db_name}"
     BATCH_SIZE: int = 100  # How many lines to read before adding to database
 
 
-class DevelopmentConfig(Config):
-    CELERY = dict(
-        broker_url="redis://localhost",
-        result_backend="redis://localhost",
-        task_ignore_results=True,
-    )
+class DevelopmentConfig(Config):  # pylint: disable = R0903
+    """Configurations for development"""
+
+    CELERY = {
+        "broker_url": "redis://localhost",
+        "result_backend": "redis://localhost",
+        "task_ignore_results": True,
+    }
 
 
-class DockerConfig(Config):
+class DockerConfig(Config):  # pylint: disable = R0903
+    """Configurations for Running in docker"""
+
     # Config to run in a docker compose
-    CELERY = dict(
-        broker_url="redis://redis:6379",
-        result_backend="redis://redis:6379",
-        task_ignore_results=True,
-    )
+    CELERY = {
+        "broker_url": "redis://redis:6379",
+        "result_backend": "redis://redis:6379",
+        "ask_ignore_results": True,
+    }
     SQLALCHEMY_DATABASE_URI = f"postgresql://{db_user}:{db_pass}@database/{db_name}"
 
 
-class TestConfig(Config):
+class TestConfig(Config):  # pylint: disable = R0903
+    """Configurations for Running in tests"""
+
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
 
 
 def get_config() -> str:
-    # Helper to pick the right config
+    """Helper to pick the right config from env ENVIRONMENT"""
     env: str = os.environ.get("ENVIRONMENT", "default").strip()
-    print(f"ENV: {env}")
 
     if env == "development":
         logging.info("Using development config")
         return "config.DevelopmentConfig"
-    elif env == "docker":
-        print(f"ENV - setting conf: {env}")
+    if env == "docker":
         logging.info("Using docker config")
         return "config.DockerConfig"
-    elif env == "test":
+    if env == "test":
         logging.info("Using test config")
         return "config.TestConfig"
-    elif env == "staging":
+    if env == "staging":
         logging.info("Using default config")
         return "config.Config"
-    elif env == "production":
+    if env == "production":
         logging.info("Using default config")
         return "config.Config"
-    else:
-        logging.info("Using default config")
-        return "config.Config"
+
+    logging.info("Using default config")
+    return "config.Config"
